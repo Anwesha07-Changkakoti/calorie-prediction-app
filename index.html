@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calorie Prediction</title>
+    <style>
+        /* Reset and general styling */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Background and layout */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0f4f8, #90caf9);
+            padding: 20px;
+        }
+
+        /* Container styling */
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Header */
+        h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        /* Labels and input styling */
+        label {
+            display: block;
+            font-size: 1em;
+            color: #555;
+            margin: 10px 0 5px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #42a5f5;
+            box-shadow: 0 0 8px rgba(66, 165, 245, 0.2);
+            outline: none;
+        }
+
+        /* Button styling */
+        button {
+            background-color: #42a5f5;
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #1e88e5;
+            transform: translateY(-2px);
+        }
+
+        /* Result area */
+        #result {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            font-size: 1em;
+            color: #333;
+            text-align: left;
+            display: none; /* Initially hidden */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 500px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            button {
+                font-size: 0.9em;
+                padding: 10px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calorie Prediction</h1>
+
+        <!-- Input fields for food item and food category -->
+        <label for="food_item">Food Item:</label>
+        <input type="text" id="food_item" placeholder="Enter a food item (e.g., Apple)">
+        
+        <label for="food_category">Food Category:</label>
+        <input type="text" id="food_category" placeholder="Enter a food category (e.g., Fruits)">
+        
+        <!-- Button to submit the request -->
+        <button onclick="getCaloriePrediction()">Get Calorie Prediction</button>
+        
+        <!-- Display area for the prediction result -->
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function getCaloriePrediction() {
+            // Get the input values
+            const foodItem = document.getElementById('food_item').value.trim();
+            const foodCategory = document.getElementById('food_category').value.trim();
+
+            // Validate inputs
+            if (!foodItem && !foodCategory) {
+                document.getElementById('result').innerHTML = "Please enter either a food item or a food category.";
+                document.getElementById('result').style.display = 'block';
+                return;
+            }
+
+            // Prepare the request payload
+            const data = {
+                food_item: foodItem,
+                food_category: foodCategory
+            };
+
+            // Make the POST request to the backend
+            try {
+                const response = await fetch('http://127.0.0.1:5000/get_calories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                // Handle the response
+                if (!response.ok) {
+                    throw new Error('Failed to fetch prediction');
+                }
+
+                const result = await response.json();
+
+                // Display the prediction result
+                if (result.error) {
+                    document.getElementById('result').innerHTML = `<strong>Error:</strong> ${result.error}`;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <h2>Calorie Prediction:</h2>
+                        <p><strong>Food Item:</strong> ${result.food_item}</p>
+                        <p><strong>Food Category:</strong> ${result.food_category}</p>
+                        <p><strong>Predicted Calories:</strong> ${result.predicted_calories} cal</p>
+                        <h3>Fitness Tips:</h3>
+                        <p>${result.fitness_tips}</p>
+                    `;
+                }
+                document.getElementById('result').style.display = 'block';
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('result').innerHTML = "An error occurred while fetching the prediction.";
+                document.getElementById('result').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
