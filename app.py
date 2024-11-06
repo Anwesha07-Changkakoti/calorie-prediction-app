@@ -123,4 +123,4 @@ def generate_fitness_tips(predicted_calories, food_category):
     return tips[0]['generated_text'].strip()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0',port=8000)
+    app.run(debug=True, host='0.0.0.1',port=8000)
