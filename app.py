@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-import os
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
@@ -13,7 +12,7 @@ CORS(app)  # Enable CORS for all origins
 # Global variables for data, model, and fitness tips generator
 data = None
 model = None
-fitness_tips_generator = pipeline('text-generation', model='gpt2', max_length=500, truncation=True)
+fitness_tips_generator = pipeline('text-generation', model='gpt2', max_length=100)
 
 # Load and clean the dataset with detailed diagnostics
 def load_and_clean_data():
@@ -118,11 +117,8 @@ def generate_fitness_tips(predicted_calories, food_category):
               "Include advice on physical activities, portion control, and dietary adjustments.")
     
     # Generate tips using the Hugging Face model
-    tips = fitness_tips_generator(prompt, max_length=500, num_return_sequences=1, truncation=True)
+    tips = fitness_tips_generator(prompt, max_length=100, num_return_sequences=1)
     return tips[0]['generated_text'].strip()
 
-
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Default to 5000 if PORT isn't set
-    app.run(host='0.0.0.0', port=port)
-
+    app.run(debug=True)
