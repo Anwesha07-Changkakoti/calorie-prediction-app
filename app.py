@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 from transformers import pipeline  # Import Hugging Face pipeline
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all origins
+CORS(app, resources={r"/get_calories": {"origins": "*"}})  # Enable CORS for specific route
 
 # Global variables for data, model, and fitness tips generator
 data = None
@@ -22,6 +22,7 @@ def load_and_clean_data():
         data = pd.read_csv('calories.csv')
 
         # Clean the columns
+        data.columns = ['FoodCategory', 'FoodItem', 'per100grams', 'Cals_per100grams', 'KJ_per100grams']
         data['per100grams'] = data['per100grams'].replace({'g': '', 'ml': ''}, regex=True).astype(float)
         data['Cals_per100grams'] = data['Cals_per100grams'].replace({' cal': ''}, regex=True).astype(float)
         data['KJ_per100grams'] = data['KJ_per100grams'].replace({' kJ': ''}, regex=True).astype(float)
@@ -121,4 +122,4 @@ def generate_fitness_tips(predicted_calories, food_category):
     return tips[0]['generated_text'].strip()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
