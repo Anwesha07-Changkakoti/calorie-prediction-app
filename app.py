@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 from transformers import pipeline  # Import Hugging Face pipeline
 
 app = Flask(__name__)
-CORS(app, origins=["https://calorie-prediction-app-i3nn.vercel.app/","http://localhost:3000"])
+CORS(app)
   # Enable CORS for specific route
 
 # Global variables for data, model, and fitness tips generator
@@ -123,4 +123,4 @@ def generate_fitness_tips(predicted_calories, food_category):
     return tips[0]['generated_text'].strip()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0',port=5000)
