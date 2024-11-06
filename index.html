@@ -138,37 +138,38 @@
             // Get the input values
             const foodItem = document.getElementById('food_item').value.trim();
             const foodCategory = document.getElementById('food_category').value.trim();
-
+        
             // Validate inputs
             if (!foodItem && !foodCategory) {
                 document.getElementById('result').innerHTML = "Please enter either a food item or a food category.";
                 document.getElementById('result').style.display = 'block';
                 return;
             }
-
+        
             // Prepare the request payload
             const data = {
                 food_item: foodItem,
                 food_category: foodCategory
             };
-
+        
             // Make the POST request to the backend
             try {
-                const response = await fetch('http://127.0.0.1:5000/get_calories', {
+                const response = await fetch('http://127.0.0.1:8000/get_calories', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(data)
                 });
-
+        
                 // Handle the response
                 if (!response.ok) {
-                    throw new Error('Failed to fetch prediction');
+                    const errorText = await response.text(); // Fetch additional error details
+                    throw new Error(`Failed to fetch prediction: ${errorText}`);
                 }
-
+        
                 const result = await response.json();
-
+        
                 // Display the prediction result
                 if (result.error) {
                     document.getElementById('result').innerHTML = `<strong>Error:</strong> ${result.error}`;
@@ -184,11 +185,11 @@
                 }
                 document.getElementById('result').style.display = 'block';
             } catch (error) {
-                console.error("Error:", error);
-                document.getElementById('result').innerHTML = "An error occurred while fetching the prediction.";
+                console.error("Fetch error:", error);
+                document.getElementById('result').innerHTML = "An error occurred while fetching the prediction. Please check your connection or server.";
                 document.getElementById('result').style.display = 'block';
             }
         }
-    </script>
+    </script>        
 </body>
 </html>
