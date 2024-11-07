@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from waitress import serve
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -8,7 +9,6 @@ from transformers import pipeline  # Import Hugging Face pipeline
 
 app = Flask(__name__)
 CORS(app)
-  # Enable CORS for specific route
 
 # Global variables for data, model, and fitness tips generator
 data = None
@@ -53,64 +53,78 @@ def load_and_clean_data():
 # Load and prepare data on startup
 load_and_clean_data()
 
-@app.route('/get_calories', methods=['POST'])
+@app.route('/get_calories', methods=['GET', 'POST'])
 def get_calories():
-    try:
-        content = request.json
-        print("Received JSON data:", content)  # Debug print statement
+    if request.method == 'GET':
+        # Return a message or a simple form for user input via GET
+        return '''
+            <h1>Calorie Prediction</h1>
+            <p>To get a calorie prediction, send a POST request with the required parameters.</p>
+            <form action="/get_calories" method="POST">
+                <label for="food_item">Food Item:</label>
+                <input type="text" id="food_item" name="food_item"><br><br>
+                <label for="food_category">Food Category:</label>
+                <input type="text" id="food_category" name="food_category"><br><br>
+                <input type="submit" value="Submit">
+            </form>
+        '''
+    elif request.method == 'POST':
+        try:
+            content = request.json
+            print("Received JSON data:", content)  # Debug print statement
 
-        # Validate input structure
-        if not isinstance(content, dict):
-            return jsonify({'error': 'Invalid input format. Expected a JSON object.'}), 400
+            # Validate input structure
+            if not isinstance(content, dict):
+                return jsonify({'error': 'Invalid input format. Expected a JSON object.'}), 400
 
-        # Retrieve and normalize input values
-        food_item = content.get('food_item', '').strip().lower()
-        food_category = content.get('food_category', '').strip().lower()
+            # Retrieve and normalize input values
+            food_item = content.get('food_item', '').strip().lower()
+            food_category = content.get('food_category', '').strip().lower()
 
-        # Check if at least one of the required fields is provided
-        if not food_item and not food_category:
-            return jsonify({'error': 'Please provide either "food_item" or "food_category".'}), 400
+            # Check if at least one of the required fields is provided
+            if not food_item and not food_category:
+                return jsonify({'error': 'Please provide either "food_item" or "food_category".'}), 400
 
-        # Filter data based on user input
-        filtered_data = data
-        if food_item:
-            filtered_data = filtered_data[filtered_data['FoodItem'].str.lower() == food_item]
-        if food_category:
-            filtered_data = filtered_data[filtered_data['FoodCategory'].str.contains(food_category, case=False, na=False)]
+            # Filter data based on user input
+            filtered_data = data
+            if food_item:
+                filtered_data = filtered_data[filtered_data['FoodItem'].str.lower() == food_item]
+            if food_category:
+                filtered_data = filtered_data[filtered_data['FoodCategory'].str.contains(food_category, case=False, na=False)]
 
-        # Check if the filtered data is empty
-        if filtered_data.empty:
-            return jsonify({'error': 'No matching data found for the provided food item or category.'}), 404
+            # Check if the filtered data is empty
+            if filtered_data.empty:
+                return jsonify({'error': 'No matching data found for the provided food item or category.'}), 404
 
-        # Prediction logic for the first matched item
-        row = filtered_data.iloc[0]
-        per_100g = row['per100grams']
-        kj_per_100g = row['KJ_per100grams']
+            # Prediction logic for the first matched item
+            row = filtered_data.iloc[0]
+            per_100g = row['per100grams']
+            kj_per_100g = row['KJ_per100grams']
 
-        if pd.notnull(per_100g) and pd.notnull(kj_per_100g):
-            # Ensure prediction data format matches model
-            input_data = pd.DataFrame([[per_100g, kj_per_100g]], columns=['per100grams', 'KJ_per100grams'])
-            print("Input data for prediction:", input_data)  # Debug print statement
-            predicted_calories = model.predict(input_data)[0]
+            if pd.notnull(per_100g) and pd.notnull(kj_per_100g):
+                # Ensure prediction data format matches model
+                input_data = pd.DataFrame([[per_100g, kj_per_100g]], columns=['per100grams', 'KJ_per100grams'])
+                print("Input data for prediction:", input_data)  # Debug print statement
+                predicted_calories = model.predict(input_data)[0]
 
-            # Generate fitness tips based on predicted calories
-            fitness_tips = generate_fitness_tips(predicted_calories, row['FoodCategory'])
+                # Generate fitness tips based on predicted calories
+                fitness_tips = generate_fitness_tips(predicted_calories, row['FoodCategory'])
 
-            # Return result with fitness tips
-            result = {
-                'food_item': row['FoodItem'],
-                'food_category': row['FoodCategory'],
-                'predicted_calories': round(predicted_calories, 2),
-                'fitness_tips': fitness_tips
-            }
-            return jsonify(result)
+                # Return result with fitness tips
+                result = {
+                    'food_item': row['FoodItem'],
+                    'food_category': row['FoodCategory'],
+                    'predicted_calories': round(predicted_calories, 2),
+                    'fitness_tips': fitness_tips
+                }
+                return jsonify(result)
 
-        # If prediction data is not valid
-        return jsonify({'error': 'Unable to make a prediction due to missing values in the data.'}), 500
+            # If prediction data is not valid
+            return jsonify({'error': 'Unable to make a prediction due to missing values in the data.'}), 500
 
-    except Exception as e:
-        print("Error processing request:", str(e))
-        return jsonify({'error': 'An error occurred while processing your request.'}), 500
+        except Exception as e:
+            print("Error processing request:", str(e))
+            return jsonify({'error': 'An error occurred while processing your request.'}), 500
 
 def generate_fitness_tips(predicted_calories, food_category):
     # Create a prompt to generate fitness tips based on calorie prediction and food category
@@ -123,4 +137,4 @@ def generate_fitness_tips(predicted_calories, food_category):
     return tips[0]['generated_text'].strip()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0',port=8000)
+    serve(app, host='0.0.0.0', port=8000)

@@ -126,50 +126,68 @@
         <label for="food_category">Food Category:</label>
         <input type="text" id="food_category" placeholder="Enter a food category (e.g., Fruits)">
         
-        <!-- Button to submit the request -->
-        <button onclick="getCaloriePrediction()">Get Calorie Prediction</button>
+        <!-- Buttons to submit GET or POST request -->
+        <button onclick="getCaloriePrediction('POST')">Get Calorie Prediction (POST)</button>
+        <button onclick="getCaloriePrediction('GET')">Get Calorie Prediction (GET)</button>
         
         <!-- Display area for the prediction result -->
         <div id="result"></div>
     </div>
 
     <script>
-        async function getCaloriePrediction() {
+        async function getCaloriePrediction(method) {
             // Get the input values
             const foodItem = document.getElementById('food_item').value.trim();
             const foodCategory = document.getElementById('food_category').value.trim();
-        
-            // Validate inputs
-            if (!foodItem && !foodCategory) {
+    
+            // Validate inputs for POST method
+            if (method === 'POST' && !foodItem && !foodCategory) {
                 document.getElementById('result').innerHTML = "Please enter either a food item or a food category.";
                 document.getElementById('result').style.display = 'block';
                 return;
             }
-        
-            // Prepare the request payload
-            const data = {
-                food_item: foodItem,
-                food_category: foodCategory
+    
+            let url = 'http://127.0.0.1:8000/get_calories';
+            let options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'  // Ensure we send JSON content
+                },
+                body: null
             };
-        
-            // Make the POST request to the backend
+    
+            // For GET method, append query parameters
+            if (method === 'GET') {
+                let queryParams = [];
+                if (foodItem) {
+                    queryParams.push(`food_item=${encodeURIComponent(foodItem)}`);
+                }
+                if (foodCategory) {
+                    queryParams.push(`food_category=${encodeURIComponent(foodCategory)}`);
+                }
+                if (queryParams.length > 0) {
+                    url += '?' + queryParams.join('&');
+                }
+            } else if (method === 'POST') {
+                const data = {
+                    food_item: foodItem,
+                    food_category: foodCategory
+                };
+                options.body = JSON.stringify(data);  // Attach data to the body for POST requests
+            }
+    
+            // Make the request to the backend
             try {
-                const response = await fetch('http://127.0.0.1:8000/get_calories', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-        
+                const response = await fetch(url, options);
+    
                 // Handle the response
                 if (!response.ok) {
                     const errorText = await response.text(); // Fetch additional error details
                     throw new Error(`Failed to fetch prediction: ${errorText}`);
                 }
-        
-                const result = await response.json();
-        
+    
+                const result = await response.json();  // Assuming JSON response
+    
                 // Display the prediction result
                 if (result.error) {
                     document.getElementById('result').innerHTML = `<strong>Error:</strong> ${result.error}`;
@@ -190,6 +208,7 @@
                 document.getElementById('result').style.display = 'block';
             }
         }
-    </script>        
+    </script>
+         
 </body>
 </html>
